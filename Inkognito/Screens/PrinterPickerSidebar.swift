@@ -2,9 +2,10 @@ import SwiftUI
 
 struct PrinterPickerSidebar: View {
     @EnvironmentObject private var appState: AppState
+    @State private var listSelection: PrinterInfo?
 
     var body: some View {
-        List(selection: selectionBinding) {
+        List(selection: $listSelection) {
             if appState.printers.isEmpty {
                 emptyRow
             } else {
@@ -13,7 +14,7 @@ struct PrinterPickerSidebar: View {
                         printer: printer,
                         isSharing: appState.isSharingActive && printer == appState.selectedPrinter
                     )
-                    .tag(Optional(printer))
+                    .tag(printer as PrinterInfo?)
                 }
             }
         }
@@ -21,13 +22,15 @@ struct PrinterPickerSidebar: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             footer
         }
-    }
-
-    private var selectionBinding: Binding<PrinterInfo?> {
-        Binding(
-            get: { appState.selectedPrinter },
-            set: { appState.select($0) }
-        )
+        .onChange(of: listSelection) { _, newValue in
+            appState.select(newValue)
+        }
+        .onChange(of: appState.selectedPrinter) { _, newValue in
+            listSelection = newValue
+        }
+        .onAppear {
+            listSelection = appState.selectedPrinter
+        }
     }
 
     private var emptyRow: some View {

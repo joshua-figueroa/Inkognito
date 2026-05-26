@@ -85,7 +85,10 @@ enum PrinterDiscovery {
             }
             return decodeURIComponent(parts.replacingOccurrences(of: "/", with: " "))
         }
-        if let host = URL(string: uri)?.host {
+        if let host = URL(string: uri)?.host,
+           !host.contains("._tcp"),
+           !host.hasSuffix(".local."),
+           !host.hasSuffix(".local") {
             return host
         }
         return nil
