@@ -21,6 +21,8 @@ final class AppState: ObservableObject {
 
     private var advertiser: BonjourAdvertiser?
     private var cupsManager: CUPSSharingManager?
+    private var jobPoller: JobPoller?
+    private var trackedJobs: [String: UUID] = [:]   // CUPS job ID → PrintJob UUID
     private var pendingSelectedName: String?
     private var cancellables = Set<AnyCancellable>()
 
@@ -39,6 +41,40 @@ final class AppState: ObservableObject {
     func bind(advertiser: BonjourAdvertiser, cupsManager: CUPSSharingManager) {
         self.advertiser = advertiser
         self.cupsManager = cupsManager
+        self.jobPoller = JobPoller { [weak self] active in
+            self?.applyActiveJobs(active)
+        }
+    }
+
+    private func applyActiveJobs(_ active: [JobPoller.ActiveJob]) {
+        guard let printerName = selectedPrinter?.name else { return }
+        let activeIDs = Set(active.map { $0.cupsID })
+
+        // Newly seen jobs → append as pending and surface a notification.
+        for job in active where trackedJobs[job.cupsID] == nil {
+            let uuid = UUID()
+            trackedJobs[job.cupsID] = uuid
+            let lowered = job.user.lowercased()
+            let source = (lowered.isEmpty || lowered == "anonymous" || lowered == "ipp") ? "AirPrint" : job.user
+            let newJob = PrintJob(
+                id: uuid,
+                timestamp: Date(),
+                printerName: printerName,
+                sourceDevice: source,
+                status: .pending
+            )
+            appendJob(newJob)
+            Notifier.jobReceived(printerName: printerName)
+        }
+
+        // Jobs that fell off the active queue → mark as done. lpstat doesn't
+        // distinguish completion from cancellation; we treat both as "done" here.
+        let disappeared = Set(trackedJobs.keys).subtracting(activeIDs)
+        for cupsID in disappeared {
+            if let uuid = trackedJobs.removeValue(forKey: cupsID) {
+                updateJob(id: uuid, status: .done, pageCount: nil)
+            }
+        }
     }
 
     func loadPersisted() {
@@ -129,8 +165,10 @@ final class AppState: ObservableObject {
                 return
             }
             DispatchQueue.main.async {
-                self?.isSharingActive = true
-                self?.lastError = nil
+                guard let self = self else { return }
+                self.isSharingActive = true
+                self.lastError = nil
+                self.jobPoller?.start(printerName: printer.name)
                 Notifier.shareStarted(printerName: printer.name)
             }
         }
@@ -142,6 +180,8 @@ final class AppState: ObservableObject {
             return
         }
         let printerName = selectedPrinter?.name
+        jobPoller?.stop()
+        trackedJobs.removeAll()
         DispatchQueue.inkognitoNetwork.async { [weak self] in
             advertiser.stop()
             if let printerName {
