@@ -3,11 +3,12 @@ import SwiftUI
 struct InkognitoWindowView: View {
     @EnvironmentObject private var appState: AppState
     @State private var showHelp = false
+    @State private var columnVisibility = NavigationSplitViewVisibility.all
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             PrinterPickerSidebar()
-                .toolbar(removing: .sidebarToggle)
+                .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 300)
         } detail: {
             PrinterDetailView()
                 .navigationTitle("Inkognito")
@@ -25,8 +26,8 @@ struct InkognitoWindowView: View {
                     }
                 }
         }
-        .navigationSplitViewStyle(.balanced)
-        .frame(minWidth: 720, idealWidth: 1000, minHeight: 460, idealHeight: 500)
+        .navigationSplitViewStyle(.prominentDetail)
+        .frame(minWidth: 700, idealWidth: 820, minHeight: 460, idealHeight: 500)
     }
 
     private var helpPopover: some View {
