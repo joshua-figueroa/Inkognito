@@ -15,7 +15,8 @@ struct PrinterPickerSidebar: View {
                             isSharing: appState.isSharingActive && printer == appState.selectedPrinter,
                             isSelected: printer == appState.selectedPrinter
                         )
-                        .listRowBackground(rowBackground(for: printer))
+                        .background(rowBackground(for: printer))
+                        .listRowBackground(Color.clear)
                         .contentShape(Rectangle())
                         .onTapGesture { appState.select(printer) }
                     }
@@ -90,7 +91,8 @@ private struct PrinterRow: View {
                 .fill(isSharing ? Color.green : Color(isSelected ? .white : .secondaryLabelColor).opacity(0.35))
                 .frame(width: 8, height: 8)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
     }
 }
 

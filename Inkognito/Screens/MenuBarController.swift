@@ -42,6 +42,7 @@ final class MenuBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
             window = makeWindow()
         }
         guard let window else { return }
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
     }
@@ -139,8 +140,7 @@ final class MenuBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
 
     // MARK: NSWindowDelegate
 
-    func windowShouldClose(_ sender: NSWindow) -> Bool {
-        sender.orderOut(nil)
-        return false
+    func windowWillClose(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
     }
 }

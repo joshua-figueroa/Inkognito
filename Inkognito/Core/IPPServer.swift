@@ -20,9 +20,7 @@ nonisolated final class IPPServer: @unchecked Sendable {
     deinit { stop() }
 
     func setActivePrinter(_ name: String) {
-        queue.async { [weak self] in
-            self?.activePrinterName = name
-        }
+        activePrinterName = name
     }
 
     @discardableResult
@@ -52,7 +50,51 @@ nonisolated final class IPPServer: @unchecked Sendable {
                         handler: self.handle(request:)
                     ).start()
                 }
-                l.start(queue: queue)
+
+                // Verify the listener reaches .ready before returning the port.
+                // Use a separate queue to avoid deadlocking inkognitoNetwork
+                // (we're already running on that queue and the semaphore would
+                // block it, preventing the stateUpdateHandler from firing).
+                let startupQueue = DispatchQueue(label: "com.inkognito.startup.\(candidate)")
+                let sema = DispatchSemaphore(value: 0)
+                let startupResult = StartupResult()
+                l.stateUpdateHandler = { [startupResult] state in
+                    switch state {
+                    case .ready:
+                        sema.signal()
+                    case .failed(let err):
+                        startupResult.error = err
+                        sema.signal()
+                    case .cancelled:
+                        startupResult.error = NSError(
+                            domain: "Inkognito.IPPServer", code: -2,
+                            userInfo: [NSLocalizedDescriptionKey: "Listener cancelled during startup"]
+                        )
+                        sema.signal()
+                    default:
+                        break
+                    }
+                }
+                l.start(queue: startupQueue)
+
+                let waitResult = sema.wait(timeout: .now() + 2.0)
+                l.stateUpdateHandler = nil
+
+                if waitResult == .timedOut {
+                    l.cancel()
+                    lastError = NSError(
+                        domain: "Inkognito.IPPServer",
+                        code: Int(ETIMEDOUT),
+                        userInfo: [NSLocalizedDescriptionKey: "Listener on port \(candidate) timed out"]
+                    )
+                    continue
+                }
+                if let err = startupResult.error {
+                    l.cancel()
+                    lastError = err
+                    continue
+                }
+
                 listener = l
                 boundPort = candidate
                 return candidate
@@ -253,6 +295,12 @@ nonisolated final class IPPServer: @unchecked Sendable {
         if ua.contains("Mac") || ua.contains("CUPS") || ua.contains("Darwin") { return "Mac" }
         return "Device"
     }
+}
+
+// MARK: - Helpers
+
+private final class StartupResult: @unchecked Sendable {
+    var error: Error?
 }
 
 // MARK: - HTTP layer
