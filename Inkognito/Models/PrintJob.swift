@@ -38,11 +38,6 @@ struct PrintJob: Identifiable, Equatable {
     }
 }
 
-enum JobEvent {
-    case received(PrintJob)
-    case finished(id: UUID, status: PrintJobStatus, pageCount: Int?)
-}
-
 #if DEBUG
 extension PrinterInfo {
     static let sampleHP = PrinterInfo(name: "HP_LaserJet_M404n", model: "HP LaserJet Pro M404n")

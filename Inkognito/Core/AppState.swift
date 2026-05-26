@@ -20,7 +20,7 @@ final class AppState: ObservableObject {
     private static let displayedJobsCap = 10
 
     private var advertiser: BonjourAdvertiser?
-    private var ippServer: IPPServer?
+    private var cupsManager: CUPSSharingManager?
     private var pendingSelectedName: String?
     private var cancellables = Set<AnyCancellable>()
 
@@ -36,23 +36,9 @@ final class AppState: ObservableObject {
         self.recentJobs = recentJobs
     }
 
-    func bind(advertiser: BonjourAdvertiser, ippServer: IPPServer) {
+    func bind(advertiser: BonjourAdvertiser, cupsManager: CUPSSharingManager) {
         self.advertiser = advertiser
-        self.ippServer = ippServer
-
-        ippServer.events
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] event in
-                guard let self else { return }
-                switch event {
-                case .received(let job):
-                    self.appendJob(job)
-                    Notifier.jobReceived(printerName: job.printerName)
-                case .finished(let id, let status, let pageCount):
-                    self.updateJob(id: id, status: status, pageCount: pageCount)
-                }
-            }
-            .store(in: &cancellables)
+        self.cupsManager = cupsManager
     }
 
     func loadPersisted() {
@@ -101,46 +87,66 @@ final class AppState: ObservableObject {
 
     func startSharing() {
         guard let printer = selectedPrinter, !isSharingActive else { return }
-        guard let advertiser, let ippServer else { return }
+        guard let advertiser, let cupsManager else { return }
+        let macName = Host.current().localizedName ?? "Mac"
+        let location = "\(macName) @ Inkognito"
         DispatchQueue.inkognitoNetwork.async { [weak self] in
-            do {
-                let port = try ippServer.start(port: 631)
-                ippServer.setActivePrinter(printer.name)
-                let ok = advertiser.start(
-                    printerName: printer.name,
-                    model: printer.model,
-                    port: port
-                )
-                if !ok {
-                    ippServer.stop()
+            // Make sure cupsd will actually accept LAN connections — if the
+            // system-wide Printer Sharing toggle is off, attempt to flip it
+            // (succeeds silently for admins; otherwise surface a clear error).
+            if !cupsManager.isSystemSharingEnabled() {
+                if !cupsManager.enableSystemSharing() {
                     DispatchQueue.main.async {
-                        self?.lastError = "Bonjour registration failed."
+                        self?.lastError = "Enable Printer Sharing in System Settings → Sharing for AirPrint to work."
                         self?.isSharingActive = false
                     }
                     return
                 }
-                DispatchQueue.main.async {
-                    self?.isSharingActive = true
-                    self?.lastError = nil
-                    Notifier.shareStarted(printerName: printer.name)
-                }
+            }
+
+            do {
+                try cupsManager.enableSharing(printerName: printer.name)
             } catch {
                 DispatchQueue.main.async {
-                    self?.lastError = "Could not start sharing: \(error.localizedDescription)"
+                    self?.lastError = "Could not enable sharing on \(printer.name): \(error.localizedDescription)"
                     self?.isSharingActive = false
                 }
+                return
+            }
+
+            let ok = advertiser.start(
+                printerName: printer.name,
+                model: printer.model,
+                location: location,
+                port: 631
+            )
+            if !ok {
+                try? cupsManager.disableSharing(printerName: printer.name)
+                DispatchQueue.main.async {
+                    self?.lastError = "Bonjour registration failed."
+                    self?.isSharingActive = false
+                }
+                return
+            }
+            DispatchQueue.main.async {
+                self?.isSharingActive = true
+                self?.lastError = nil
+                Notifier.shareStarted(printerName: printer.name)
             }
         }
     }
 
     func stopSharing() {
-        guard let advertiser, let ippServer else {
+        guard let advertiser, let cupsManager else {
             isSharingActive = false
             return
         }
+        let printerName = selectedPrinter?.name
         DispatchQueue.inkognitoNetwork.async { [weak self] in
             advertiser.stop()
-            ippServer.stop()
+            if let printerName {
+                try? cupsManager.disableSharing(printerName: printerName)
+            }
             DispatchQueue.main.async {
                 self?.isSharingActive = false
             }

@@ -5,19 +5,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var appState: AppState!
     private(set) var menuBarController: MenuBarController!
     private var advertiser: BonjourAdvertiser!
-    private var ippServer: IPPServer!
-    private var forwarder: JobForwarder!
+    private var cupsManager: CUPSSharingManager!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" else { return }
         NSApp.setActivationPolicy(.accessory)
 
-        forwarder = JobForwarder()
-        ippServer = IPPServer(forwarder: forwarder)
         advertiser = BonjourAdvertiser()
+        cupsManager = CUPSSharingManager()
 
         appState = AppState()
-        appState.bind(advertiser: advertiser, ippServer: ippServer)
+        appState.bind(advertiser: advertiser, cupsManager: cupsManager)
         menuBarController = MenuBarController(appState: appState)
 
         Notifier.requestAuth()

@@ -19,7 +19,7 @@ nonisolated final class BonjourAdvertiser: @unchecked Sendable {
     }
 
     @discardableResult
-    func start(printerName: String, model: String, port: UInt16) -> Bool {
+    func start(printerName: String, model: String, location: String, port: UInt16 = 631) -> Bool {
         stop()
 
         var txt = TXTRecordRef()
@@ -30,16 +30,19 @@ nonisolated final class BonjourAdvertiser: @unchecked Sendable {
             .replacingOccurrences(of: " ", with: "_")
             .addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? printerName
 
+        // Match AirPrint_Bridge's proven TXT record set.
+        let displayModel = model.isEmpty ? printerName : model
         let pairs: [(String, String)] = [
             ("txtvers", "1"),
             ("qtotal", "1"),
             ("rp", "printers/\(sanitizedResource)"),
-            ("ty", model.isEmpty ? printerName : model),
-            ("adminurl", "http://localhost:\(port)/"),
-            ("note", ""),
-            ("priority", "0"),
-            ("product", "(Inkognito)"),
-            ("pdl", "application/pdf,image/jpeg")
+            ("ty", displayModel),
+            ("product", "(\(displayModel))"),
+            ("note", location),
+            ("pdl", "application/pdf,image/urf,image/pwg-raster,image/jpeg"),
+            ("URF", "V1.4,W8,SRGB24,CP1,PQ3-4,RS300-600,OB10,OFU0,DM3,IS1,MT1"),
+            ("Color", "T"),
+            ("Duplex", "F")
         ]
 
         for (key, value) in pairs {
