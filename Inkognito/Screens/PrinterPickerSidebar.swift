@@ -71,7 +71,7 @@ private struct PrinterRow: View {
             Image(systemName: "printer")
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 1) {
-                Text(printer.name)
+                Text(printer.displayName)
                     .lineLimit(1)
                 if !printer.model.isEmpty {
                     Text(printer.model)

@@ -4,6 +4,7 @@ struct PrinterInfo: Identifiable, Hashable, Codable {
     let name: String
     let model: String
     var id: String { name }
+    var displayName: String { name.replacingOccurrences(of: "_", with: " ") }
 }
 
 enum PrintJobStatus: Equatable {

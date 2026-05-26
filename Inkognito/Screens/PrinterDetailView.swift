@@ -48,7 +48,7 @@ struct PrinterDetailView: View {
                 Text(appState.isSharingActive ? "Sharing as AirPrint" : "Not Sharing")
                     .font(.subheadline)
             }
-            Text("Shared as: \"\(printer.name) (Inkognito)\"")
+            Text("Shared as: \"\(printer.displayName) (Inkognito)\"")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             if let error = appState.lastError {

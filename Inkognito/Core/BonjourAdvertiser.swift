@@ -54,7 +54,8 @@ nonisolated final class BonjourAdvertiser: @unchecked Sendable {
             }
         }
 
-        let displayName = "\(printerName) (Inkognito)"
+        let humanName = printerName.replacingOccurrences(of: "_", with: " ")
+        let displayName = "\(humanName) (Inkognito)"
         let regtype = "_ipp._tcp,_universal"
         let txtLen = TXTRecordGetLength(&txt)
         let txtPtr = TXTRecordGetBytesPtr(&txt)
