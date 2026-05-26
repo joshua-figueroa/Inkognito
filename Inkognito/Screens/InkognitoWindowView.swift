@@ -1,0 +1,57 @@
+import SwiftUI
+
+struct InkognitoWindowView: View {
+    @EnvironmentObject private var appState: AppState
+    @State private var showHelp = false
+
+    var body: some View {
+        NavigationSplitView {
+            PrinterPickerSidebar()
+                .navigationSplitViewColumnWidth(min: 200, ideal: 220)
+        } detail: {
+            PrinterDetailView()
+        }
+        .frame(minWidth: 560, idealWidth: 640, minHeight: 420, idealHeight: 480)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Text("🕵️ Inkognito").font(.headline)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showHelp.toggle()
+                } label: {
+                    Image(systemName: "questionmark.circle")
+                }
+                .popover(isPresented: $showHelp, arrowEdge: .bottom) {
+                    helpPopover
+                }
+                .help("About Inkognito")
+            }
+        }
+    }
+
+    private var helpPopover: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Your printer's secret identity.")
+                .font(.headline)
+            Text("Inkognito gives your dumb printer a secret AirPrint identity. Enable sharing, then pick this printer from any iPhone or iPad on your network.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(width: 320)
+    }
+}
+
+#if DEBUG
+#Preview("Sharing with jobs") {
+    InkognitoWindowView()
+        .environmentObject(AppState.previewSharing)
+}
+
+#Preview("No printers") {
+    InkognitoWindowView()
+        .environmentObject(AppState.previewEmpty)
+}
+#endif
