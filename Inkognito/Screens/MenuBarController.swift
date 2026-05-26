@@ -51,13 +51,15 @@ final class MenuBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
             .environmentObject(appState)
         let hosting = NSHostingController(rootView: content)
         let w = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 640, height: 480),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 480),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         w.contentViewController = hosting
         w.title = "Inkognito"
+        w.titlebarAppearsTransparent = true
+        w.titleVisibility = .hidden
         w.isReleasedWhenClosed = false
         w.setFrameAutosaveName("InkognitoMainWindow")
         w.center()
