@@ -1,0 +1,153 @@
+# ═══════════════════════════════════════════════
+# macOS
+# ═══════════════════════════════════════════════
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+
+# ═══════════════════════════════════════════════
+# Xcode / Swift
+# ═══════════════════════════════════════════════
+
+# Build products
+build/
+DerivedData/
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# User-specific Xcode settings
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+*.xcscmblueprint
+*.xccheckout
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Packages/
+!revdash-ios/Packages/
+# NOTE: Package.resolved IS intentionally committed (locks dep versions).
+
+# CocoaPods (not used, but safe to ignore)
+Pods/
+*.xcworkspace/xcuserdata
+
+# Carthage (not used)
+Carthage/Build/
+Carthage/Checkouts
+
+# Accio
+Dependencies/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Injected code (HotReloading, InjectionIII)
+iOSInjectionProject/
+
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries / coverage
+*.test
+*.out
+coverage.txt
+coverage.out
+coverage.html
+
+# Vendored dependencies — remove the next line if you choose to vendor
+vendor/
+
+# Local tmp
+tmp/
+/tmp
+
+
+# ═══════════════════════════════════════════════
+# Environment & secrets
+# ═══════════════════════════════════════════════
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.cert
+
+# Allow example env files to be committed
+!.env.example
+!.env.sample
+
+
+# ═══════════════════════════════════════════════
+# Docker / local data
+# ═══════════════════════════════════════════════
+postgres-data/
+mysql-data/
+docker-data/
+*.sql.bak
+*.dump
+
+
+# ═══════════════════════════════════════════════
+# IDE / editors
+# ═══════════════════════════════════════════════
+
+# JetBrains (GoLand / AppCode / IntelliJ)
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+Session.vim
+.netrwhist
+
+# Emacs
+\#*\#
+.\#*
+
+# Sublime
+*.sublime-workspace
+*.sublime-project
+
+# Zed
+.zed/
+
+
+# ═══════════════════════════════════════════════
+# Logs & misc
+# ═══════════════════════════════════════════════
+*.log
+logs/
+*.pid
+*.seed
+.cache/
+
+
+# ═══════════════════════════════════════════════
+# Project-specific (add below as needed)
+# ═══════════════════════════════════════════════
+
+# Scratch notes / private planning
+/scratch/
+/notes-private/
