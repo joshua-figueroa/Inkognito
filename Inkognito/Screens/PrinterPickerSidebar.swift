@@ -2,19 +2,21 @@ import SwiftUI
 
 struct PrinterPickerSidebar: View {
     @EnvironmentObject private var appState: AppState
-    @State private var listSelection: PrinterInfo?
 
     var body: some View {
-        List(selection: $listSelection) {
+        List {
             if appState.printers.isEmpty {
                 emptyRow
             } else {
                 ForEach(appState.printers) { printer in
                     PrinterRow(
                         printer: printer,
-                        isSharing: appState.isSharingActive && printer == appState.selectedPrinter
+                        isSharing: appState.isSharingActive && printer == appState.selectedPrinter,
+                        isSelected: printer == appState.selectedPrinter
                     )
-                    .tag(printer as PrinterInfo?)
+                    .listRowBackground(rowBackground(for: printer))
+                    .contentShape(Rectangle())
+                    .onTapGesture { appState.select(printer) }
                 }
             }
         }
@@ -22,15 +24,11 @@ struct PrinterPickerSidebar: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             footer
         }
-        .onChange(of: listSelection) { _, newValue in
-            appState.select(newValue)
-        }
-        .onChange(of: appState.selectedPrinter) { _, newValue in
-            listSelection = newValue
-        }
-        .onAppear {
-            listSelection = appState.selectedPrinter
-        }
+    }
+
+    private func rowBackground(for printer: PrinterInfo) -> some View {
+        RoundedRectangle(cornerRadius: 6)
+            .fill(printer == appState.selectedPrinter ? Color.accentColor : Color.clear)
     }
 
     private var emptyRow: some View {
@@ -68,24 +66,26 @@ struct PrinterPickerSidebar: View {
 private struct PrinterRow: View {
     let printer: PrinterInfo
     let isSharing: Bool
+    var isSelected: Bool = false
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "printer")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
             VStack(alignment: .leading, spacing: 1) {
                 Text(printer.displayName)
                     .lineLimit(1)
+                    .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                 if !printer.model.isEmpty {
                     Text(printer.model)
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(isSelected ? AnyShapeStyle(.white.opacity(0.75)) : AnyShapeStyle(.tertiary))
                         .lineLimit(1)
                 }
             }
             Spacer()
             Circle()
-                .fill(isSharing ? Color.green : Color.secondary.opacity(0.35))
+                .fill(isSharing ? Color.green : Color(isSelected ? .white : .secondaryLabelColor).opacity(0.35))
                 .frame(width: 8, height: 8)
         }
         .padding(.vertical, 2)
