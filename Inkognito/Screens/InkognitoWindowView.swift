@@ -10,24 +10,21 @@ struct InkognitoWindowView: View {
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220)
         } detail: {
             PrinterDetailView()
+                .toolbar {
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        Button {
+                            showHelp.toggle()
+                        } label: {
+                            Image(systemName: "questionmark.circle")
+                        }
+                        .popover(isPresented: $showHelp, arrowEdge: .bottom) {
+                            helpPopover
+                        }
+                        .help("About Inkognito")
+                    }
+                }
         }
         .frame(minWidth: 560, idealWidth: 640, minHeight: 420, idealHeight: 480)
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Text("🕵️ Inkognito").font(.headline)
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showHelp.toggle()
-                } label: {
-                    Image(systemName: "questionmark.circle")
-                }
-                .popover(isPresented: $showHelp, arrowEdge: .bottom) {
-                    helpPopover
-                }
-                .help("About Inkognito")
-            }
-        }
     }
 
     private var helpPopover: some View {

@@ -56,7 +56,7 @@ final class MenuBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
             defer: false
         )
         w.contentViewController = hosting
-        w.title = "🕵️ Inkognito"
+        w.title = "Inkognito"
         w.isReleasedWhenClosed = false
         w.setFrameAutosaveName("InkognitoMainWindow")
         w.center()
