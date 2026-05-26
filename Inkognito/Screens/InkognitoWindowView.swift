@@ -7,7 +7,7 @@ struct InkognitoWindowView: View {
     var body: some View {
         NavigationSplitView {
             PrinterPickerSidebar()
-                .navigationSplitViewColumnWidth(min: 600, ideal: 650)
+                .navigationSplitViewColumnWidth(min: 220, ideal: 260)
                 .toolbar(removing: .sidebarToggle)
         } detail: {
             PrinterDetailView()
@@ -47,10 +47,12 @@ struct InkognitoWindowView: View {
 #Preview("Sharing with jobs") {
     InkognitoWindowView()
         .environmentObject(AppState.previewSharing)
+        .frame(width: 820, height: 500)
 }
 
 #Preview("No printers") {
     InkognitoWindowView()
         .environmentObject(AppState.previewEmpty)
+        .frame(width: 820, height: 500)
 }
 #endif
