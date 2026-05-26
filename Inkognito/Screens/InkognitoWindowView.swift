@@ -7,7 +7,7 @@ struct InkognitoWindowView: View {
     var body: some View {
         NavigationSplitView {
             PrinterPickerSidebar()
-                .navigationSplitViewColumnWidth(min: 220, ideal: 240)
+                .navigationSplitViewColumnWidth(min: 600, ideal: 650)
                 .toolbar(removing: .sidebarToggle)
         } detail: {
             PrinterDetailView()
@@ -26,7 +26,7 @@ struct InkognitoWindowView: View {
                     }
                 }
         }
-        .frame(minWidth: 640, idealWidth: 720, minHeight: 460, idealHeight: 500)
+        .frame(minWidth: 720, idealWidth: 1000, minHeight: 460, idealHeight: 500)
     }
 
     private var helpPopover: some View {
