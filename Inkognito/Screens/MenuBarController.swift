@@ -16,10 +16,11 @@ final class MenuBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
         super.init()
 
         if let button = statusItem.button {
-            button.image = NSImage(
-                systemSymbolName: "printer.fill",
-                accessibilityDescription: "Inkognito"
-            )
+            let icon = NSImage(named: "MenuBarIcon")
+            icon?.isTemplate = true
+            icon?.size = NSSize(width: 18, height: 18)
+            icon?.accessibilityDescription = "Inkognito"
+            button.image = icon
             button.toolTip = "Inkognito — your printer's secret identity"
         }
 
