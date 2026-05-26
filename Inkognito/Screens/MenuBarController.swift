@@ -59,7 +59,6 @@ final class MenuBarController: NSObject, NSMenuDelegate, NSWindowDelegate {
         w.contentViewController = hosting
         w.title = "Inkognito"
         w.titlebarAppearsTransparent = true
-        w.titleVisibility = .hidden
         w.isReleasedWhenClosed = false
         w.setFrameAutosaveName("InkognitoMainWindow")
         w.center()

@@ -4,28 +4,23 @@ struct PrinterPickerSidebar: View {
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        VStack(spacing: 0) {
-            if appState.printers.isEmpty {
-                emptyState
-            } else {
-                printerList
-            }
-            Divider()
-            footer
-        }
-    }
-
-    private var printerList: some View {
         List(selection: selectionBinding) {
-            ForEach(appState.printers) { printer in
-                PrinterRow(
-                    printer: printer,
-                    isSharing: appState.isSharingActive && printer == appState.selectedPrinter
-                )
-                .tag(Optional(printer))
+            if appState.printers.isEmpty {
+                emptyRow
+            } else {
+                ForEach(appState.printers) { printer in
+                    PrinterRow(
+                        printer: printer,
+                        isSharing: appState.isSharingActive && printer == appState.selectedPrinter
+                    )
+                    .tag(Optional(printer))
+                }
             }
         }
         .listStyle(.sidebar)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            footer
+        }
     }
 
     private var selectionBinding: Binding<PrinterInfo?> {
@@ -35,37 +30,35 @@ struct PrinterPickerSidebar: View {
         )
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 8) {
-            Spacer()
-            Image(systemName: "printer.dotmatrix")
-                .font(.system(size: 28))
-                .foregroundStyle(.tertiary)
+    private var emptyRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
             Text("No printers detected.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Text("Make sure they're connected to your Mac.")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-            Spacer()
         }
-        .padding(.horizontal)
+        .padding(.vertical, 4)
     }
 
     private var footer: some View {
-        HStack {
-            Button {
-                appState.refreshPrinters()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                Text("Refresh")
+        VStack(spacing: 0) {
+            Divider()
+            HStack {
+                Button {
+                    appState.refreshPrinters()
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+                Spacer()
             }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-            Spacer()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
-        .padding(8)
+        .background(.bar)
     }
 }
 

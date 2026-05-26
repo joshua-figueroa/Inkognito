@@ -3,51 +3,30 @@ import SwiftUI
 struct InkognitoWindowView: View {
     @EnvironmentObject private var appState: AppState
     @State private var showHelp = false
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        NavigationSplitView {
             PrinterPickerSidebar()
                 .navigationSplitViewColumnWidth(min: 220, ideal: 240)
                 .toolbar(removing: .sidebarToggle)
         } detail: {
-            VStack(spacing: 0) {
-                detailHeader
-                Divider()
-                PrinterDetailView()
-            }
+            PrinterDetailView()
+                .navigationTitle("Inkognito")
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            showHelp.toggle()
+                        } label: {
+                            Image(systemName: "questionmark.circle")
+                        }
+                        .popover(isPresented: $showHelp, arrowEdge: .bottom) {
+                            helpPopover
+                        }
+                        .help("About Inkognito")
+                    }
+                }
         }
         .frame(minWidth: 640, idealWidth: 720, minHeight: 460, idealHeight: 500)
-    }
-
-    private var detailHeader: some View {
-        HStack(spacing: 14) {
-            Text("Inkognito")
-                .font(.title3.weight(.semibold))
-            Spacer()
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    columnVisibility = (columnVisibility == .detailOnly) ? .all : .detailOnly
-                }
-            } label: {
-                Image(systemName: "sidebar.left")
-            }
-            .buttonStyle(.borderless)
-            .help("Toggle sidebar")
-
-            Button {
-                showHelp.toggle()
-            } label: {
-                Image(systemName: "questionmark.circle")
-            }
-            .buttonStyle(.borderless)
-            .popover(isPresented: $showHelp, arrowEdge: .bottom) {
-                helpPopover
-            }
-            .help("About Inkognito")
-        }
-        .padding(.horizontal, 20)
-        .frame(height: 52)
     }
 
     private var helpPopover: some View {
