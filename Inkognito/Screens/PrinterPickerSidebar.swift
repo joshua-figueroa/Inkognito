@@ -5,18 +5,20 @@ struct PrinterPickerSidebar: View {
 
     var body: some View {
         List {
-            if appState.printers.isEmpty {
-                emptyRow
-            } else {
-                ForEach(appState.printers) { printer in
-                    PrinterRow(
-                        printer: printer,
-                        isSharing: appState.isSharingActive && printer == appState.selectedPrinter,
-                        isSelected: printer == appState.selectedPrinter
-                    )
-                    .listRowBackground(rowBackground(for: printer))
-                    .contentShape(Rectangle())
-                    .onTapGesture { appState.select(printer) }
+            Section("Local Printers") {
+                if appState.printers.isEmpty {
+                    emptyRow
+                } else {
+                    ForEach(appState.printers) { printer in
+                        PrinterRow(
+                            printer: printer,
+                            isSharing: appState.isSharingActive && printer == appState.selectedPrinter,
+                            isSelected: printer == appState.selectedPrinter
+                        )
+                        .listRowBackground(rowBackground(for: printer))
+                        .contentShape(Rectangle())
+                        .onTapGesture { appState.select(printer) }
+                    }
                 }
             }
         }
