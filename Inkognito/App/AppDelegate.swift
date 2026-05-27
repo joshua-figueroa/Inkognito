@@ -40,8 +40,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         appState?.stopSharing()
-        // stopSharing dispatches cleanup asynchronously; drain the queue
-        DispatchQueue.inkognitoNetwork.sync { }
     }
 }
 
