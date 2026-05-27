@@ -2,6 +2,8 @@ import SwiftUI
 
 struct PrinterDetailView: View {
     @EnvironmentObject private var appState: AppState
+    @State private var showSupply = false
+    @State private var isHoveringInk = false
 
     var body: some View {
         Group {
@@ -23,9 +25,30 @@ struct PrinterDetailView: View {
 
             statusSection(for: printer)
 
-            Toggle("Share this Printer", isOn: sharingBinding)
-                .toggleStyle(.switch)
-                .font(.headline)
+            HStack {
+                Toggle("Share this Printer", isOn: sharingBinding)
+                    .toggleStyle(.switch)
+                    .font(.headline)
+                Spacer()
+                Button {
+                    appState.refreshSupply()
+                    showSupply = true
+                } label: {
+                    Image(systemName: "drop.fill")
+                        .font(.system(size: 18, weight: .medium))
+                        .frame(width: 35, height: 35)
+                }
+                .buttonStyle(.plain)
+                .modifier(GlassCircleModifier())
+                .brightness(isHoveringInk ? 0.05 : 0)
+                .animation(.easeOut(duration: 0.1), value: isHoveringInk)
+                .onHover { isHoveringInk = $0 }
+                .popover(isPresented: $showSupply, arrowEdge: .leading) {
+                    SupplyPopover()
+                        .environmentObject(appState)
+                }
+                .help("Show Ink Levels")
+            }
 
             Divider()
 
@@ -111,6 +134,53 @@ struct PrinterDetailView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct GlassCircleModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 26, *) {
+            content.glassEffect(in: Circle())
+        } else {
+            content.background(.ultraThinMaterial, in: Circle())
+        }
+    }
+}
+
+private struct SupplyPopover: View {
+    @EnvironmentObject private var appState: AppState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Ink Levels")
+                .font(.headline)
+            if appState.isLoadingSupply {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+            } else if appState.supplyLevels.isEmpty {
+                Text("Unavailable")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(appState.supplyLevels) { level in
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack {
+                            Text(level.name)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(level.percent)%")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        ProgressView(value: Double(level.percent), total: 100)
+                            .tint(level.color)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .frame(width: 200)
     }
 }
 
@@ -210,5 +280,20 @@ private struct JobRow: View {
     PrinterDetailView()
         .environmentObject(AppState.previewSharing)
         .frame(width: 480, height: 480)
+}
+
+#Preview("Supply popover — loaded") {
+    SupplyPopover()
+        .environmentObject(AppState.previewSupplyLoaded)
+}
+
+#Preview("Supply popover — loading") {
+    SupplyPopover()
+        .environmentObject(AppState.previewSupplyLoading)
+}
+
+#Preview("Supply popover — unavailable") {
+    SupplyPopover()
+        .environmentObject(AppState.previewEmpty)
 }
 #endif

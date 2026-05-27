@@ -14,6 +14,8 @@ final class AppState: ObservableObject {
     @Published var isSharingActive: Bool
     @Published var recentJobs: [PrintJob]
     @Published var lastError: String?
+    @Published var supplyLevels: [SupplyLevel] = []
+    @Published var isLoadingSupply: Bool = false
 
     private static let selectedPrinterKey = "selectedPrinter"
     private static let recentJobsCap = 50
@@ -290,6 +292,19 @@ final class AppState: ObservableObject {
         recentJobs.removeAll()
     }
 
+    func refreshSupply() {
+        guard let printerName = selectedPrinter?.name else { return }
+        isLoadingSupply = true
+        supplyLevels = []
+        DispatchQueue.inkognitoNetwork.async { [weak self] in
+            let levels = SupplyReader.fetchLevels(printerName: printerName)
+            DispatchQueue.main.async {
+                self?.supplyLevels = levels
+                self?.isLoadingSupply = false
+            }
+        }
+    }
+
     static var displayedJobsLimit: Int { displayedJobsCap }
 }
 
@@ -311,6 +326,26 @@ extension AppState {
             isSharingActive: true,
             recentJobs: [.sampleFailed, .sampleDone, .samplePending]
         )
+    }
+
+    static var previewSupplyLoaded: AppState {
+        let s = AppState(
+            printers: [.sampleHP, .sampleCanon, .sampleBrother],
+            selectedPrinter: .sampleHP,
+            isSharingActive: true
+        )
+        s.supplyLevels = [.sampleBlack, .sampleCyan, .sampleMagenta, .sampleYellow]
+        return s
+    }
+
+    static var previewSupplyLoading: AppState {
+        let s = AppState(
+            printers: [.sampleHP, .sampleCanon, .sampleBrother],
+            selectedPrinter: .sampleHP,
+            isSharingActive: true
+        )
+        s.isLoadingSupply = true
+        return s
     }
 }
 #endif
