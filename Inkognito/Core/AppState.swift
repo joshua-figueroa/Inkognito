@@ -103,7 +103,6 @@ final class AppState: ObservableObject {
             ATTR keyword which-jobs completed
             ATTR keyword requested-attributes job-id,job-impressions-completed,job-k-octets
             STATUS successful-ok
-            STATUS successful-ok-ignored-or-substituted
             DISPLAY job-id
             DISPLAY job-impressions-completed
             DISPLAY job-k-octets
@@ -133,6 +132,8 @@ final class AppState: ObservableObject {
             var curID: Int?; var curPages: Int?; var curSize: Int?
             var result: (Int?, Int?) = (nil, nil)
 
+            // ipptool lists all jobs consecutively with no separator between records;
+            // a new job-id line signals the start of the next record.
             func checkCurrent() {
                 if curID == jobNumber { result = (curPages, curSize) }
                 curID = nil; curPages = nil; curSize = nil
@@ -140,11 +141,15 @@ final class AppState: ObservableObject {
 
             for line in output.components(separatedBy: "\n") {
                 let t = line.trimmingCharacters(in: .whitespaces)
-                if t.contains("-- separator --") { checkCurrent(); continue }
                 func val() -> String { t.components(separatedBy: "=").last?.trimmingCharacters(in: .whitespaces) ?? "" }
-                if t.hasPrefix("job-id") { curID = Int(val()) }
-                else if t.hasPrefix("job-impressions-completed") { let v = Int(val()); curPages = (v ?? 0) > 0 ? v : nil }
-                else if t.hasPrefix("job-k-octets") { curSize = Int(val()) }
+                if t.hasPrefix("job-id") {
+                    checkCurrent()   // finalize previous record before starting a new one
+                    curID = Int(val())
+                } else if t.hasPrefix("job-impressions-completed") {
+                    let v = Int(val()); curPages = (v ?? 0) > 0 ? v : nil
+                } else if t.hasPrefix("job-k-octets") {
+                    curSize = Int(val())
+                }
             }
             checkCurrent()
             DispatchQueue.main.async { completion(result.0, result.1) }

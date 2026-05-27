@@ -27,7 +27,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // whether to auto-resume sharing or reveal the window.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
             guard let self else { return }
-            if let selected = self.appState.selectedPrinter,
+            let autoConnect = UserDefaults.standard.object(forKey: "autoConnect") as? Bool ?? true
+            if autoConnect,
+               let selected = self.appState.selectedPrinter,
                self.appState.printers.contains(where: { $0.name == selected.name }) {
                 self.appState.startSharing()
             } else {

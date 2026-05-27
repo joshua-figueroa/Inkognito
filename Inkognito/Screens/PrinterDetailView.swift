@@ -158,7 +158,7 @@ private struct JobRow: View {
             .frame(minWidth: 80, alignment: .leading)
             Spacer()
             if let pages = job.pageCount {
-                Text(pages == 1 ? "1 pg" : "\(pages) pgs")
+                Text(pages == 1 ? "1 page" : "\(pages) pages")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(width: 44, alignment: .trailing)
