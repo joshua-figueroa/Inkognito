@@ -8,6 +8,7 @@ nonisolated final class JobPoller: @unchecked Sendable {
         let cupsID: String      // e.g. "Canon_G2020_series-5"
         let user: String        // submitter user name from lpstat
         let sizeBytes: Int      // bytes in the queued document
+        let documentName: String?
     }
 
     private let onSnapshot: ([ActiveJob]) -> Void
@@ -53,34 +54,48 @@ nonisolated final class JobPoller: @unchecked Sendable {
     }
 
     private static func queryActive(printer: String) -> [ActiveJob] {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/lpstat")
-        process.arguments = ["-o", printer]
-        let stdout = Pipe()
-        process.standardOutput = stdout
-        process.standardError = Pipe()
+        guard let statOut = shell("/usr/bin/lpstat", "-o", printer) else { return [] }
 
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            return []
-        }
-        guard process.terminationStatus == 0 else { return [] }
-
-        let data = stdout.fileHandleForReading.readDataToEndOfFile()
-        guard let output = String(data: data, encoding: .utf8) else { return [] }
-
-        var jobs: [ActiveJob] = []
-        for rawLine in output.split(separator: "\n") {
-            let parts = rawLine.split(whereSeparator: { $0.isWhitespace })
-            // Expected: <job-id> <user> <size> <date...>
+        var basicJobs: [(cupsID: String, user: String, size: Int)] = []
+        for rawLine in statOut.split(separator: "\n") {
+            let parts = rawLine.split(whereSeparator: \.isWhitespace)
             guard parts.count >= 3 else { continue }
-            let id = String(parts[0])
-            let user = String(parts[1])
-            let size = Int(parts[2]) ?? 0
-            jobs.append(ActiveJob(cupsID: id, user: user, sizeBytes: size))
+            basicJobs.append((String(parts[0]), String(parts[1]), Int(parts[2]) ?? 0))
         }
-        return jobs
+        guard !basicJobs.isEmpty else { return [] }
+
+        // lpq -P <printer> format:
+        // Rank    Owner   Job  File(s)             Total Size
+        // active  mobile  5    Document.pdf         61440 bytes
+        var docByJobNum: [String: String] = [:]
+        if let lpqOut = shell("/usr/bin/lpq", "-P", printer) {
+            for line in lpqOut.components(separatedBy: "\n") {
+                let parts = line.split(whereSeparator: \.isWhitespace)
+                guard parts.count >= 6 else { continue }
+                let jobNum = String(parts[2])
+                guard Int(jobNum) != nil else { continue }   // skip header
+                let nameParts = parts[3 ..< (parts.count - 2)]
+                let name = nameParts.joined(separator: " ")
+                if !name.isEmpty { docByJobNum[jobNum] = name }
+            }
+        }
+
+        return basicJobs.map { job in
+            let jobNum = job.cupsID.components(separatedBy: "-").last ?? ""
+            return ActiveJob(cupsID: job.cupsID, user: job.user, sizeBytes: job.size,
+                             documentName: docByJobNum[jobNum])
+        }
+    }
+
+    private static func shell(_ path: String, _ args: String...) -> String? {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: path)
+        p.arguments = args
+        let out = Pipe()
+        p.standardOutput = out
+        p.standardError = Pipe()
+        do { try p.run(); p.waitUntilExit() } catch { return nil }
+        guard p.terminationStatus == 0 else { return nil }
+        return String(data: out.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)
     }
 }

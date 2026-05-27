@@ -73,11 +73,6 @@ struct PrinterDetailView: View {
                 }
                 .listStyle(.inset)
                 .frame(minHeight: 140)
-                HStack {
-                    Spacer()
-                    Button("Clear Jobs") { appState.clearJobs() }
-                        .controlSize(.small)
-                }
             }
         }
     }
@@ -128,25 +123,54 @@ private struct JobRow: View {
         return f
     }()
 
-    var body: some View {
-        HStack(spacing: 10) {
-            Text(Self.timeFormatter.string(from: job.timestamp))
-                .font(.system(.callout, design: .monospaced))
-                .foregroundStyle(.secondary)
-            Text(job.sourceDevice ?? "Unknown")
-                .font(.callout)
-                .frame(minWidth: 60, alignment: .leading)
-            Text(pagesLabel)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            Spacer()
-            statusBadge
+    private static let dateTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d, HH:mm"
+        return f
+    }()
+
+    private var timestampLabel: String {
+        if Calendar.current.isDateInToday(job.timestamp) {
+            return Self.timeFormatter.string(from: job.timestamp)
         }
+        if Calendar.current.isDateInYesterday(job.timestamp) {
+            return "Yesterday \(Self.timeFormatter.string(from: job.timestamp))"
+        }
+        return Self.dateTimeFormatter.string(from: job.timestamp)
     }
 
-    private var pagesLabel: String {
-        guard let count = job.pageCount else { return "—" }
-        return count == 1 ? "1 page" : "\(count) pages"
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(timestampLabel)
+                .font(.system(.callout, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .frame(width: 90, alignment: .leading)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(job.sourceDevice ?? "Unknown")
+                    .font(.callout)
+                if let name = job.documentName {
+                    Text(name)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+            }
+            .frame(minWidth: 80, alignment: .leading)
+            Spacer()
+            if let pages = job.pageCount {
+                Text(pages == 1 ? "1 pg" : "\(pages) pgs")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 44, alignment: .trailing)
+            }
+            if let kb = job.sizeKB {
+                Text(kb >= 1024 ? "\(kb / 1024) MB" : "\(kb) KB")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 52, alignment: .trailing)
+            }
+            statusBadge
+        }
     }
 
     private var statusBadge: some View {

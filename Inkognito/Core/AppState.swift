@@ -60,6 +60,8 @@ final class AppState: ObservableObject {
                 id: uuid,
                 timestamp: Date(),
                 printerName: printerName,
+                documentName: job.documentName,
+                sizeKB: job.sizeBytes > 0 ? max(1, job.sizeBytes / 1024) : nil,
                 sourceDevice: source,
                 status: .pending
             )
@@ -67,13 +69,85 @@ final class AppState: ObservableObject {
             Notifier.jobReceived(printerName: printerName)
         }
 
-        // Jobs that fell off the active queue → mark as done. lpstat doesn't
-        // distinguish completion from cancellation; we treat both as "done" here.
+        // Jobs that fell off the active queue → mark as done, then fetch final
+        // page count and confirmed size from CUPS via ipptool.
         let disappeared = Set(trackedJobs.keys).subtracting(activeIDs)
         for cupsID in disappeared {
             if let uuid = trackedJobs.removeValue(forKey: cupsID) {
                 updateJob(id: uuid, status: .done, pageCount: nil)
+                if let jobNum = Int(cupsID.components(separatedBy: "-").last ?? "") {
+                    fetchCompletedJobStats(printerName: printerName, jobNumber: jobNum) { [weak self] pages, sizeKB in
+                        guard let self else { return }
+                        guard let idx = self.recentJobs.firstIndex(where: { $0.id == uuid }) else { return }
+                        if let p = pages { self.recentJobs[idx].pageCount = p }
+                        if let s = sizeKB { self.recentJobs[idx].sizeKB = s }
+                    }
+                }
             }
+        }
+    }
+
+    private func fetchCompletedJobStats(
+        printerName: String,
+        jobNumber: Int,
+        completion: @escaping (Int?, Int?) -> Void
+    ) {
+        let script = """
+        {
+            NAME "Get job \(jobNumber) stats"
+            OPERATION Get-Jobs
+            GROUP operation-attributes-tag
+            ATTR charset attributes-charset utf-8
+            ATTR naturalLanguage attributes-natural-language en
+            ATTR uri printer-uri ipp://localhost/printers/\(printerName)
+            ATTR keyword which-jobs completed
+            ATTR keyword requested-attributes job-id,job-impressions-completed,job-k-octets
+            STATUS successful-ok
+            STATUS successful-ok-ignored-or-substituted
+            DISPLAY job-id
+            DISPLAY job-impressions-completed
+            DISPLAY job-k-octets
+        }
+        """
+        DispatchQueue.inkognitoNetwork.async {
+            let tmpURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("inkognito_\(UUID().uuidString).test")
+            guard (try? script.write(to: tmpURL, atomically: true, encoding: .utf8)) != nil else {
+                DispatchQueue.main.async { completion(nil, nil) }
+                return
+            }
+            defer { try? FileManager.default.removeItem(at: tmpURL) }
+
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/ipptool")
+            p.arguments = ["-t", "ipp://localhost/printers/\(printerName)", tmpURL.path]
+            let out = Pipe()
+            p.standardOutput = out
+            p.standardError = Pipe()
+            do { try p.run(); p.waitUntilExit() } catch {
+                DispatchQueue.main.async { completion(nil, nil) }
+                return
+            }
+
+            let output = String(data: out.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            var curID: Int?; var curPages: Int?; var curSize: Int?
+            var result: (Int?, Int?) = (nil, nil)
+
+            func checkCurrent() {
+                if curID == jobNumber { result = (curPages, curSize) }
+                curID = nil; curPages = nil; curSize = nil
+            }
+
+            for line in output.components(separatedBy: "\n") {
+                let t = line.trimmingCharacters(in: .whitespaces)
+                if t.contains("-- separator --") { checkCurrent(); continue }
+                func val() -> String { t.components(separatedBy: "=").last?.trimmingCharacters(in: .whitespaces) ?? "" }
+                if t.hasPrefix("job-id") { curID = Int(val()) }
+                else if t.hasPrefix("job-impressions-completed") { let v = Int(val()); curPages = (v ?? 0) > 0 ? v : nil }
+                else if t.hasPrefix("job-k-octets") { curSize = Int(val()) }
+            }
+            checkCurrent()
+            DispatchQueue.main.async { completion(result.0, result.1) }
         }
     }
 
@@ -124,8 +198,7 @@ final class AppState: ObservableObject {
     func startSharing() {
         guard let printer = selectedPrinter, !isSharingActive else { return }
         guard let advertiser, let cupsManager else { return }
-        let macName = Host.current().localizedName ?? "Mac"
-        let location = "\(macName) @ Inkognito"
+        let location = Host.current().localizedName ?? "Mac"
         DispatchQueue.inkognitoNetwork.async { [weak self] in
             // Make sure cupsd will actually accept LAN connections — if the
             // system-wide Printer Sharing toggle is off, attempt to flip it

@@ -17,7 +17,9 @@ struct PrintJob: Identifiable, Equatable {
     let id: UUID
     let timestamp: Date
     let printerName: String
+    var documentName: String?
     var pageCount: Int?
+    var sizeKB: Int?
     let sourceDevice: String?
     var status: PrintJobStatus
 
@@ -25,14 +27,18 @@ struct PrintJob: Identifiable, Equatable {
         id: UUID = UUID(),
         timestamp: Date = Date(),
         printerName: String,
+        documentName: String? = nil,
         pageCount: Int? = nil,
+        sizeKB: Int? = nil,
         sourceDevice: String? = nil,
         status: PrintJobStatus = .pending
     ) {
         self.id = id
         self.timestamp = timestamp
         self.printerName = printerName
+        self.documentName = documentName
         self.pageCount = pageCount
+        self.sizeKB = sizeKB
         self.sourceDevice = sourceDevice
         self.status = status
     }
@@ -49,20 +55,25 @@ extension PrintJob {
     static let sampleDone = PrintJob(
         timestamp: Date().addingTimeInterval(-120),
         printerName: "HP_LaserJet_M404n",
+        documentName: "Invoice_May2026.pdf",
         pageCount: 2,
+        sizeKB: 15,
         sourceDevice: "iPhone",
         status: .done
     )
     static let sampleFailed = PrintJob(
         timestamp: Date().addingTimeInterval(-380),
         printerName: "HP_LaserJet_M404n",
+        documentName: "Report_Draft.pdf",
         pageCount: 5,
+        sizeKB: 3544,
         sourceDevice: "iPhone",
         status: .failed("lp exit 1")
     )
     static let samplePending = PrintJob(
         printerName: "HP_LaserJet_M404n",
-        pageCount: nil,
+        documentName: "Boarding_Pass.pdf",
+        sizeKB: 502,
         sourceDevice: "iPad",
         status: .pending
     )
